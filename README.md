@@ -39,4 +39,4 @@ Run this command to find the directory in which this file should be created:
 dirname "$(llm logs path)"
 ```
 
-The `model_id` is the name LLM will use for the model. The `model_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if the `model_id` could potentially clash with other installed models.
+The `model_id` is the name LLM will use for the model. The `deployment_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if the `model_id` could potentially clash with other installed models.
