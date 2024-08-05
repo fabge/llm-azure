@@ -1,6 +1,6 @@
 [project]
 name = "llm-azure"
-version = "0.1"
+version = "0.2"
 description = "Azure plugin for LLM using the AzureOpenAI class"
 readme = "README.md"
 authors = [{name = "Fabian Geiger"}]
