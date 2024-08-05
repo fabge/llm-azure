@@ -17,7 +17,7 @@ llm install llm-azure
 
 ## Usage
 
-First, set an API key for Claude 3:
+First, set an API key for Azure OpenAI:
 
 ```bash
 llm keys set azure
@@ -29,7 +29,7 @@ To add the `gpt-4-32k` model, deployed in your Azure Subscription, add this to y
 ```yaml
 - model_id: gpt-4-32k
   deployment_name: gpt-4-32k
-  endpoint: https://gpt4-test-1p.openai.azure.com/
+  endpoint: https://your_deployment.openai.azure.com/
   api_version: '2023-05-15'
 ```
 
