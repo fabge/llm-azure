@@ -71,6 +71,9 @@ class AzureChat(Chat):
     def get_client(self):
         return _get_client(self)
 
+    def __str__(self):
+        return "AzureOpenAI Completion: {}".format(self.model_id)
+
 
 def config_dir():
     dir_path = llm.user_dir() / "azure"
