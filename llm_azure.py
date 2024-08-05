@@ -3,7 +3,8 @@ from typing import Iterable, Iterator, List, Union
 import llm
 import yaml
 from llm import EmbeddingModel, hookimpl
-from llm.default_plugins.openai_models import Chat
+from llm.default_plugins.openai_models import Chat, combine_chunks
+from llm.utils import remove_dict_none_values
 from openai import AzureOpenAI
 
 
@@ -73,6 +74,54 @@ class AzureChat(Chat):
 
     def __str__(self):
         return "AzureOpenAI Completion: {}".format(self.model_id)
+
+    def execute(self, prompt, stream, response, conversation=None):
+        messages = []
+        current_system = None
+        if conversation is not None:
+            for prev_response in conversation.responses:
+                if (
+                    prev_response.prompt.system
+                    and prev_response.prompt.system != current_system
+                ):
+                    messages.append(
+                        {"role": "system", "content": prev_response.prompt.system},
+                    )
+                    current_system = prev_response.prompt.system
+                messages.append(
+                    {"role": "user", "content": prev_response.prompt.prompt},
+                )
+                messages.append({"role": "assistant", "content": prev_response.text()})
+        if prompt.system and prompt.system != current_system:
+            messages.append({"role": "system", "content": prompt.system})
+        messages.append({"role": "user", "content": prompt.prompt})
+        response._prompt_json = {"messages": messages}
+        kwargs = self.build_kwargs(prompt)
+        client = self.get_client()
+        if stream:
+            completion = client.chat.completions.create(
+                model=self.model_name or self.model_id,
+                messages=messages,
+                stream=True,
+                **kwargs,
+            )
+            chunks = []
+            for chunk in completion:
+                chunks.append(chunk)
+                if chunk.choices:
+                    content = chunk.choices[0].delta.content
+                    if content is not None:
+                        yield content
+            response.response_json = remove_dict_none_values(combine_chunks(chunks))
+        else:
+            completion = client.chat.completions.create(
+                model=self.model_name or self.model_id,
+                messages=messages,
+                stream=False,
+                **kwargs,
+            )
+            response.response_json = remove_dict_none_values(completion.dict())
+            yield completion.choices[0].message.content
 
 
 def config_dir():
