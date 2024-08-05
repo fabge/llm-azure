@@ -1,9 +1,8 @@
 # llm-azure
 
 [![PyPI](https://img.shields.io/pypi/v/llm-azure.svg)](https://pypi.org/project/llm-azure/)
-[![Changelog](https://img.shields.io/github/v/release/simonw/llm-azure?include_prereleases&label=changelog)](https://github.com/simonw/llm-azure/releases)
-[![Tests](https://github.com/simonw/llm-azure/actions/workflows/test.yml/badge.svg)](https://github.com/simonw/llm-azure/actions/workflows/test.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/llm-azure/blob/main/LICENSE)
+[![Changelog](https://img.shields.io/github/v/release/fabge/llm-azure?include_prereleases&label=changelog)](https://github.com/fabge/llm-azure/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/fabge/llm-azure/blob/main/LICENSE)
 
 LLM access to the Azure OpenAI SDK
 
