@@ -73,7 +73,7 @@ class AzureChat(Chat):
         return _get_client(self)
 
     def __str__(self):
-        return "AzureOpenAI Completion: {}".format(self.model_id)
+        return "AzureOpenAI Chat: {}".format(self.model_id)
 
     def execute(self, prompt, stream, response, conversation=None):
         messages = []
