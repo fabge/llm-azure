@@ -96,7 +96,7 @@ class AzureChat(Chat):
             messages.append({"role": "system", "content": prompt.system})
         messages.append({"role": "user", "content": prompt.prompt})
         response._prompt_json = {"messages": messages}
-        kwargs = self.build_kwargs(prompt)
+        kwargs = self.build_kwargs(prompt, stream)
         client = self.get_client()
         if stream:
             completion = client.chat.completions.create(
