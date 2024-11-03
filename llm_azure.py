@@ -17,10 +17,11 @@ def register_models(register):
         if not model.get('embedding_model'):
             model_id = model["model_id"]
             model_name = model["deployment_name"]
+            can_stream = model.get("can_stream", True)
             endpoint = model["endpoint"]
             api_version = model["api_version"]
             aliases = model.get("aliases", [])
-            register(AzureChat(model_id, model_name, endpoint, api_version), aliases=aliases)
+            register(AzureChat(model_id, model_name, can_stream, endpoint, api_version), aliases=aliases)
 
 
 @hookimpl
@@ -63,9 +64,10 @@ class AzureChat(Chat):
     needs_key = "azure"
     key_env_var = "AZURE_OPENAI_API_KEY"
 
-    def __init__(self, model_id, model_name, endpoint, api_version):
+    def __init__(self, model_id, model_name, can_stream, endpoint, api_version):
         self.model_id = model_id
         self.model_name = model_name
+        self.can_stream = can_stream
         self.endpoint = endpoint
         self.api_version = api_version
 
@@ -96,7 +98,7 @@ class AzureChat(Chat):
             messages.append({"role": "system", "content": prompt.system})
         messages.append({"role": "user", "content": prompt.prompt})
         response._prompt_json = {"messages": messages}
-        kwargs = self.build_kwargs(prompt)
+        kwargs = self.build_kwargs(prompt, stream)
         client = self.get_client()
         if stream:
             completion = client.chat.completions.create(
@@ -109,7 +111,10 @@ class AzureChat(Chat):
             for chunk in completion:
                 chunks.append(chunk)
                 if chunk.choices:
-                    content = chunk.choices[0].delta.content
+                    try:
+                        content = chunk.choices[0].delta.content
+                    except IndexError:
+                        content = None
                     if content is not None:
                         yield content
             response.response_json = remove_dict_none_values(combine_chunks(chunks))
