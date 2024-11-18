@@ -23,13 +23,18 @@ llm keys set azure
 # Paste key here
 ```
 
-To add the `gpt-4-32k` model, deployed in your Azure Subscription, add this to your `azure/config.yaml` file:
+To add the `gpt-4-32k` chat model, and embedding model `text-embedding-3-small` deployed in your Azure Subscription, add this to your `azure/config.yaml` file:
 
 ```yaml
 - model_id: gpt-4-32k
   deployment_name: gpt-4-32k
   endpoint: https://your_deployment.openai.azure.com/
   api_version: '2023-05-15'
+- model_id: text-embedding-3-small
+  embedding_model: true
+  deployment_name: text-embedding-3-small
+  endpoint: https://your_deployment.openai.azure.com/
+  api_version: '2023-05-14'
 ```
 
 the configuration file should be in the `azure` directory in the config of your `llm` installation.
