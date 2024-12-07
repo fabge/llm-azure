@@ -40,3 +40,17 @@ dirname "$(llm logs path)"
 ```
 
 The `model_id` is the name LLM will use for the model. The `deployment_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if the `model_id` could potentially clash with other installed models.
+
+### Attachments
+
+To enable the `-a` flag, simply add an `attachment_types` section to your `config.yaml` with the desired filetypes (subject to the underlying model's support). Expanding on the example above, your `config.yaml` would now look like this:
+
+```yaml
+- model_id: gpt-4-32k
+  deployment_name: gpt-4-32k
+  endpoint: https://your_deployment.openai.azure.com/
+  api_version: '2023-05-15'
+  attachment_types:
+  - "image/png"
+  - "image/jpeg"
+```
