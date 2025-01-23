@@ -137,6 +137,7 @@ def config_dir():
 
 
 def _get_client(self):
+    self.key = llm.get_key(None, self.needs_key, self.key_env_var)    
     return AzureOpenAI(
         api_key=self.key,
         api_version=self.api_version,
