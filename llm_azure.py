@@ -7,6 +7,8 @@ from llm.default_plugins.openai_models import Chat, combine_chunks
 from llm.utils import remove_dict_none_values
 from openai import AzureOpenAI
 
+DEFAULT_KEY_ALIAS = "azure"
+DEFAULT_KEY_ENV_VAR = "AZURE_OPENAI_API_KEY"
 
 @hookimpl
 def register_models(register):
@@ -21,7 +23,9 @@ def register_models(register):
             endpoint = model["endpoint"]
             api_version = model["api_version"]
             aliases = model.get("aliases", [])
-            register(AzureChat(model_id, model_name, can_stream, endpoint, api_version), aliases=aliases)
+            needs_key = model.get("needs_key", DEFAULT_KEY_ALIAS)
+            key_env_var = model.get("key_env_var", DEFAULT_KEY_ENV_VAR)
+            register(AzureChat(model_id, model_name, can_stream, endpoint, api_version, needs_key, key_env_var), aliases=aliases)
 
 
 @hookimpl
@@ -36,19 +40,24 @@ def register_embedding_models(register):
             endpoint = model["endpoint"]
             api_version = model["api_version"]
             aliases = model.get("aliases", [])
-            register(AzureEmbedding(model_id, model_name, endpoint, api_version), aliases=aliases)
+            needs_key = model.get("needs_key", DEFAULT_KEY_ALIAS)
+            key_env_var = model.get("key_env_var", DEFAULT_KEY_ENV_VAR)
+            register(AzureEmbedding(model_id, model_name, endpoint, api_version, needs_key, key_env_var)
+, aliases=aliases)
 
 
 class AzureEmbedding(EmbeddingModel):
-    needs_key = "azure"
-    key_env_var = "AZURE_OPENAI_API_KEY"
+    needs_key = DEFAULT_KEY_ALIAS
+    key_env_var = DEFAULT_KEY_ENV_VAR
     batch_size = 100
 
-    def __init__(self, model_id, model_name, endpoint, api_version):
+    def __init__(self, model_id, model_name, endpoint, api_version, needs_key=DEFAULT_KEY_ALIAS, key_env_var=DEFAULT_KEY_ENV_VAR):
         self.model_id = model_id
         self.model_name = model_name
         self.endpoint = endpoint
         self.api_version = api_version
+        self.needs_key = needs_key
+        self.key_env_var = key_env_var
 
     def embed_batch(self, items: Iterable[Union[str, bytes]]) -> Iterator[List[float]]:
         kwargs = {
@@ -61,15 +70,17 @@ class AzureEmbedding(EmbeddingModel):
 
 
 class AzureChat(Chat):
-    needs_key = "azure"
-    key_env_var = "AZURE_OPENAI_API_KEY"
+    needs_key = DEFAULT_KEY_ALIAS
+    key_env_var = DEFAULT_KEY_ENV_VAR
 
-    def __init__(self, model_id, model_name, can_stream, endpoint, api_version):
+    def __init__(self, model_id, model_name, can_stream, endpoint, api_version, needs_key = DEFAULT_KEY_ALIAS, key_env_var= DEFAULT_KEY_ENV_VAR):
         self.model_id = model_id
         self.model_name = model_name
         self.can_stream = can_stream
         self.endpoint = endpoint
         self.api_version = api_version
+        self.needs_key = needs_key
+        self.key_env_var = key_env_var
 
     def get_client(self):
         return _get_client(self)
@@ -137,8 +148,9 @@ def config_dir():
 
 
 def _get_client(self):
+    
     return AzureOpenAI(
-        api_key=self.key,
+        api_key=self.get_key(),
         api_version=self.api_version,
         azure_endpoint=self.endpoint,
     )
