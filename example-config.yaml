@@ -1,0 +1,23 @@
+# Vision-enabled model example
+- model_id: az-gpt-4o
+  deployment_name: gpt-4o
+  endpoint: "https://your-resource.openai.azure.com/"
+  api_version: "2025-01-01-preview"
+  aliases: ["az4o"]
+  vision: true
+
+# Audio-enabled model example
+- model_id: az-gpt-4o-audio
+  deployment_name: gpt-4o-audio-preview
+  endpoint: "https://your-resource.openai.azure.com/"
+  api_version: "2025-01-01-preview"
+  aliases: ["az4o-audio"]
+  audio: true
+
+# Reasoning model example
+- model_id: az-o3-mini
+  deployment_name: o3-mini
+  endpoint: "https://your-resource.openai.azure.com/"
+  api_version: "2025-01-01-preview"
+  aliases: ["azo3-mini"]
+  reasoning: true 

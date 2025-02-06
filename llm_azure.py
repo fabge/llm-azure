@@ -21,7 +21,24 @@ def register_models(register):
             endpoint = model["endpoint"]
             api_version = model["api_version"]
             aliases = model.get("aliases", [])
-            register(AzureChat(model_id, model_name, can_stream, endpoint, api_version), aliases=aliases)
+            vision = model.get("vision", False)
+            audio = model.get("audio", False)
+            reasoning = model.get("reasoning", False)
+            allows_system_prompt = model.get("allows_system_prompt", True)
+            register(
+                AzureChat(
+                    model_id,
+                    model_name,
+                    can_stream,
+                    endpoint,
+                    api_version,
+                    vision=vision,
+                    audio=audio,
+                    reasoning=reasoning,
+                    allows_system_prompt=allows_system_prompt
+                ),
+                aliases=aliases
+            )
 
 
 @hookimpl
@@ -64,10 +81,16 @@ class AzureChat(Chat):
     needs_key = "azure"
     key_env_var = "AZURE_OPENAI_API_KEY"
 
-    def __init__(self, model_id, model_name, can_stream, endpoint, api_version):
-        self.model_id = model_id
-        self.model_name = model_name
-        self.can_stream = can_stream
+    def __init__(self, model_id, model_name, can_stream, endpoint, api_version, vision=False, audio=False, reasoning=False, allows_system_prompt=True):
+        super().__init__(
+            model_id,
+            model_name=model_name,
+            can_stream=can_stream,
+            vision=vision,
+            audio=audio,
+            reasoning=reasoning,
+            allows_system_prompt=allows_system_prompt
+        )
         self.endpoint = endpoint
         self.api_version = api_version
 
