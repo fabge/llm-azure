@@ -27,13 +27,14 @@ To add the `gpt-4-32k` chat model, and embedding model `text-embedding-3-small` 
 
 ```yaml
 - model_id: gpt-4-32k
-  deployment_name: gpt-4-32k
-  endpoint: https://your_deployment.openai.azure.com/
+  model_name: gpt-4-32k
+  api_base: https://your_deployment.openai.azure.com/
   api_version: '2023-05-15'
+
 - model_id: text-embedding-3-small
   embedding_model: true
-  deployment_name: text-embedding-3-small
-  endpoint: https://your_deployment.openai.azure.com/
+  model_name: text-embedding-3-small
+  api_base: https://your_deployment.openai.azure.com/
   api_version: '2023-05-14'
 ```
 
@@ -44,4 +45,4 @@ Run this command to find the directory in which this file should be created:
 dirname "$(llm logs path)"
 ```
 
-The `model_id` is the name LLM will use for the model. The `deployment_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if the `model_id` could potentially clash with other installed models.
+The `model_id` is the name LLM will use for the model. The `model_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if `model_id` could potentially clash with other installed models.

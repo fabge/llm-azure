@@ -1,42 +1,96 @@
+import os
 from typing import Iterable, Iterator, List, Union
 
 import llm
 import yaml
 from llm import EmbeddingModel, hookimpl
-from llm.default_plugins.openai_models import Chat, combine_chunks
-from llm.utils import remove_dict_none_values
-from openai import AzureOpenAI
+from llm.default_plugins.openai_models import AsyncChat, Chat, _Shared, not_nulls
+from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
 @hookimpl
 def register_models(register):
-    azure_path = config_dir() / "config.yaml"
+    azure_path = llm.user_dir() / "azure"
+    azure_path.mkdir(exist_ok=True)
+    azure_path = azure_path / "config.yaml"
+
     with open(azure_path) as f:
         azure_models = yaml.safe_load(f)
+
     for model in azure_models:
-        if not model.get('embedding_model'):
-            model_id = model["model_id"]
-            model_name = model["deployment_name"]
-            can_stream = model.get("can_stream", True)
-            endpoint = model["endpoint"]
-            api_version = model["api_version"]
-            aliases = model.get("aliases", [])
-            register(AzureChat(model_id, model_name, can_stream, endpoint, api_version), aliases=aliases)
+        if model.get('embedding_model'):
+            continue
+
+        aliases = model.pop("aliases", [])
+
+        register(
+            AzureChat(**model),
+            AzureAsyncChat(**model),
+            aliases=aliases,
+        )
 
 
 @hookimpl
 def register_embedding_models(register):
-    azure_path = config_dir() / "config.yaml"
+    azure_path = llm.user_dir() / "azure"
+    azure_path.mkdir(exist_ok=True)
+    azure_path = azure_path / "config.yaml"
+
     with open(azure_path) as f:
         azure_models = yaml.safe_load(f)
+
     for model in azure_models:
-        if model.get('embedding_model'):
-            model_id = model["model_id"]
-            model_name = model["deployment_name"]
-            endpoint = model["endpoint"]
-            api_version = model["api_version"]
-            aliases = model.get("aliases", [])
-            register(AzureEmbedding(model_id, model_name, endpoint, api_version), aliases=aliases)
+        if not model.get('embedding_model'):
+            continue
+
+        aliases = model.pop("aliases", [])
+        model.pop('embedding_model')
+
+        register(
+            AzureEmbedding(**model),
+            aliases=aliases,
+        )
+
+
+class AzureShared(_Shared):
+    needs_key = "azure"
+    key_env_var = "AZURE_OPENAI_API_KEY"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_client(self, async_=False):
+        kwargs = {
+            "api_key": self.get_key(),
+            "api_version": self.api_version,
+            "azure_endpoint": self.api_base,
+        }
+        if os.environ.get("LLM_OPENAI_SHOW_RESPONSES"):
+            kwargs["http_client"] = self.logging_client()
+        if async_:
+            return AsyncAzureOpenAI(**kwargs)
+        else:
+            return AzureOpenAI(**kwargs)
+
+    def build_kwargs(self, prompt, stream):
+        kwargs = dict(not_nulls(prompt.options))
+        json_object = kwargs.pop("json_object", None)
+        if "max_tokens" not in kwargs and self.default_max_tokens is not None:
+            kwargs["max_tokens"] = self.default_max_tokens
+        if json_object:
+            kwargs["response_format"] = {"type": "json_object"}
+        # currently not supported for azure openai https://github.com/openai/openai-python/issues/1469
+        # if stream:
+        #     kwargs["stream_options"] = {"include_usage": True}
+        return kwargs
+
+
+class AzureChat(AzureShared, Chat):
+    pass
+
+
+class AzureAsyncChat(AzureShared, AsyncChat):
+    pass
 
 
 class AzureEmbedding(EmbeddingModel):
@@ -44,101 +98,21 @@ class AzureEmbedding(EmbeddingModel):
     key_env_var = "AZURE_OPENAI_API_KEY"
     batch_size = 100
 
-    def __init__(self, model_id, model_name, endpoint, api_version):
+    def __init__(self, model_id, model_name, api_base, api_version):
         self.model_id = model_id
         self.model_name = model_name
-        self.endpoint = endpoint
+        self.api_base = api_base
         self.api_version = api_version
 
     def embed_batch(self, items: Iterable[Union[str, bytes]]) -> Iterator[List[float]]:
+        client = AzureOpenAI(
+            api_key=self.get_key(),
+            api_version=self.api_version,
+            azure_endpoint=self.api_base,
+        )
         kwargs = {
             "input": items,
             "model": self.model_name,
         }
-        client = _get_client(self)
         results = client.embeddings.create(**kwargs).data
         return ([float(r) for r in result.embedding] for result in results)
-
-
-class AzureChat(Chat):
-    needs_key = "azure"
-    key_env_var = "AZURE_OPENAI_API_KEY"
-
-    def __init__(self, model_id, model_name, can_stream, endpoint, api_version):
-        self.model_id = model_id
-        self.model_name = model_name
-        self.can_stream = can_stream
-        self.endpoint = endpoint
-        self.api_version = api_version
-
-    def get_client(self):
-        return _get_client(self)
-
-    def __str__(self):
-        return "AzureOpenAI Chat: {}".format(self.model_id)
-
-    def execute(self, prompt, stream, response, conversation=None):
-        messages = []
-        current_system = None
-        if conversation is not None:
-            for prev_response in conversation.responses:
-                if (
-                    prev_response.prompt.system
-                    and prev_response.prompt.system != current_system
-                ):
-                    messages.append(
-                        {"role": "system", "content": prev_response.prompt.system},
-                    )
-                    current_system = prev_response.prompt.system
-                messages.append(
-                    {"role": "user", "content": prev_response.prompt.prompt},
-                )
-                messages.append({"role": "assistant", "content": prev_response.text()})
-        if prompt.system and prompt.system != current_system:
-            messages.append({"role": "system", "content": prompt.system})
-        messages.append({"role": "user", "content": prompt.prompt})
-        response._prompt_json = {"messages": messages}
-        kwargs = self.build_kwargs(prompt, stream)
-        client = self.get_client()
-        if stream:
-            completion = client.chat.completions.create(
-                model=self.model_name or self.model_id,
-                messages=messages,
-                stream=True,
-                **kwargs,
-            )
-            chunks = []
-            for chunk in completion:
-                chunks.append(chunk)
-                if chunk.choices:
-                    try:
-                        content = chunk.choices[0].delta.content
-                    except IndexError:
-                        content = None
-                    if content is not None:
-                        yield content
-            response.response_json = remove_dict_none_values(combine_chunks(chunks))
-        else:
-            completion = client.chat.completions.create(
-                model=self.model_name or self.model_id,
-                messages=messages,
-                stream=False,
-                **kwargs,
-            )
-            response.response_json = remove_dict_none_values(completion.dict())
-            yield completion.choices[0].message.content
-
-
-def config_dir():
-    dir_path = llm.user_dir() / "azure"
-    if not dir_path.exists():
-        dir_path.mkdir()
-    return dir_path
-
-
-def _get_client(self):
-    return AzureOpenAI(
-        api_key=self.key,
-        api_version=self.api_version,
-        azure_endpoint=self.endpoint,
-    )
