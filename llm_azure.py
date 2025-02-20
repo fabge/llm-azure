@@ -59,9 +59,9 @@ class AzureShared(_Shared):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def get_client(self, async_=False):
+    def get_client(self, key, *, async_=False):
         kwargs = {
-            "api_key": self.get_key(),
+            "api_key": self.get_key(key),
             "api_version": self.api_version,
             "azure_endpoint": self.api_base,
         }
