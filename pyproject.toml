@@ -1,6 +1,6 @@
 [project]
 name = "llm-azure"
-version = "1.0"
+version = "1.1"
 description = "Azure plugin for LLM using the AzureOpenAI class"
 readme = "README.md"
 authors = [{name = "Fabian Geiger"}]
@@ -9,7 +9,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License"
 ]
 dependencies = [
-    "llm",
+    "llm>=0.22",
 ]
 
 [project.urls]
