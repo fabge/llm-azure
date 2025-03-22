@@ -10,11 +10,12 @@ from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
 def _ensure_config_file():
-    filepath = llm.user_dir() /  "azure" / "config.yaml"
+    filepath = llm.user_dir() / "azure" / "config.yaml"
     if not filepath.exists():
         filepath.parent.mkdir(exist_ok=True)
-        filepath.write_text('[]')
+        filepath.write_text("[]")
     return filepath
+
 
 @llm.hookimpl
 def register_commands(cli):
@@ -26,6 +27,7 @@ def register_commands(cli):
     def config_file():
         "Display the path to the azure config file"
         click.echo(_ensure_config_file())
+
 
 @hookimpl
 def register_models(register):
