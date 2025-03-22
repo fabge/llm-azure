@@ -1,6 +1,7 @@
 import os
 from typing import Iterable, Iterator, List, Union
 
+import click
 import llm
 import yaml
 from llm import EmbeddingModel, hookimpl
@@ -8,12 +9,27 @@ from llm.default_plugins.openai_models import AsyncChat, Chat, _Shared, not_null
 from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
+def _ensure_config_file():
+    filepath = llm.user_dir() /  "azure" / "config.yaml"
+    if not filepath.exists():
+        filepath.parent.mkdir(exist_ok=True)
+        filepath.write_text('[]')
+    return filepath
+
+@llm.hookimpl
+def register_commands(cli):
+    @cli.group()
+    def azure():
+        "Commands for working with azure models"
+
+    @azure.command()
+    def config_file():
+        "Display the path to the azure config file"
+        click.echo(_ensure_config_file())
+
 @hookimpl
 def register_models(register):
-    azure_path = llm.user_dir() / "azure"
-    azure_path.mkdir(exist_ok=True)
-    azure_path = azure_path / "config.yaml"
-
+    azure_path = _ensure_config_file()
     with open(azure_path) as f:
         azure_models = yaml.safe_load(f)
 
@@ -32,10 +48,7 @@ def register_models(register):
 
 @hookimpl
 def register_embedding_models(register):
-    azure_path = llm.user_dir() / "azure"
-    azure_path.mkdir(exist_ok=True)
-    azure_path = azure_path / "config.yaml"
-
+    azure_path = _ensure_config_file()
     with open(azure_path) as f:
         azure_models = yaml.safe_load(f)
 
