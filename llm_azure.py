@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Iterable, Iterator, List, Union
 
 import llm
@@ -8,14 +9,48 @@ from llm.default_plugins.openai_models import AsyncChat, Chat, _Shared, not_null
 from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
+CONFIG_TEMPLATE = """
+- model_id: azure-gpt-5-mini
+  model_name: gpt-5-mini
+  api_base: https://your_deployment.cognitiveservices.azure.com/
+  api_version: '2024-12-01-preview'
+
+- model_id: text-embedding-3-small
+  embedding_model: true
+  model_name: text-embedding-3-small
+  api_base: https://your_deployment.openai.azure.com/
+  api_version: "2024-02-01"
+""".lstrip()
+
+
+def get_azure_models(azure_path):
+    try:
+        with open(azure_path, "rt") as f:
+            content = f.read()
+            models = yaml.safe_load(content) or []
+    except FileNotFoundError:
+        with open(azure_path, "w") as f:
+            f.write(CONFIG_TEMPLATE)
+        content = CONFIG_TEMPLATE
+        models = yaml.safe_load(content)
+
+    if "your_deployment" in content or not models:
+        print(
+            "    Your Azure config file needs to be initialized with your deployment values. Find yours at https://ai.azure.com",
+            f"\n    Hint: Open '{azure_path!s}' in your editor to update your deployment details.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    return models
+
 @hookimpl
 def register_models(register):
     azure_path = llm.user_dir() / "azure"
     azure_path.mkdir(exist_ok=True)
     azure_path = azure_path / "config.yaml"
 
-    with open(azure_path) as f:
-        azure_models = yaml.safe_load(f)
+    azure_models = get_azure_models(azure_path)
 
     for model in azure_models:
         if model.get('embedding_model'):
@@ -36,8 +71,7 @@ def register_embedding_models(register):
     azure_path.mkdir(exist_ok=True)
     azure_path = azure_path / "config.yaml"
 
-    with open(azure_path) as f:
-        azure_models = yaml.safe_load(f)
+    azure_models = get_azure_models(azure_path)
 
     for model in azure_models:
         if not model.get('embedding_model'):
