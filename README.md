@@ -39,10 +39,16 @@ To add the `gpt-4-32k` chat model, and embedding model `text-embedding-3-small` 
 ```
 
 the configuration file should be in the `azure` directory in the config of your `llm` installation.
-Run this command to find the directory in which this file should be created:
+Run this command to find the location of the config file:
 
 ```bash
-dirname "$(llm logs path)"
+llm azure config-file
+```
+
+or you can open the file with:
+
+```bash
+open "$(llm azure config-file)"
 ```
 
 The `model_id` is the name LLM will use for the model. The `model_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if `model_id` could potentially clash with other installed models.
