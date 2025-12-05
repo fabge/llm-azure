@@ -79,6 +79,24 @@ class AzureShared(_Shared):
             kwargs["max_tokens"] = self.default_max_tokens
         if json_object:
             kwargs["response_format"] = {"type": "json_object"}
+        if prompt.schema:
+            kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "output", "schema": prompt.schema},
+            }
+        if prompt.tools:
+            kwargs["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description or None,
+                        "parameters": tool.input_schema,
+                    },
+                }
+                for tool in prompt.tools
+            ]
+
         # currently not supported for azure openai https://github.com/openai/openai-python/issues/1469
         # if stream:
         #     kwargs["stream_options"] = {"include_usage": True}
