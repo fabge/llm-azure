@@ -4,7 +4,7 @@ from typing import Iterable, Iterator, List, Union
 import llm
 import yaml
 from llm import EmbeddingModel, hookimpl
-from llm.default_plugins.openai_models import AsyncChat, Chat, _Shared, not_nulls
+from llm.default_plugins.openai_models import AsyncChat, Chat, _Shared
 from openai import AsyncAzureOpenAI, AzureOpenAI
 
 
@@ -73,33 +73,10 @@ class AzureShared(_Shared):
             return AzureOpenAI(**kwargs)
 
     def build_kwargs(self, prompt, stream):
-        kwargs = dict(not_nulls(prompt.options))
-        json_object = kwargs.pop("json_object", None)
-        if "max_tokens" not in kwargs and self.default_max_tokens is not None:
-            kwargs["max_tokens"] = self.default_max_tokens
-        if json_object:
-            kwargs["response_format"] = {"type": "json_object"}
-        if prompt.schema:
-            kwargs["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {"name": "output", "schema": prompt.schema},
-            }
-        if prompt.tools:
-            kwargs["tools"] = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": tool.name,
-                        "description": tool.description or None,
-                        "parameters": tool.input_schema,
-                    },
-                }
-                for tool in prompt.tools
-            ]
-
-        # currently not supported for azure openai https://github.com/openai/openai-python/issues/1469
-        # if stream:
-        #     kwargs["stream_options"] = {"include_usage": True}
+        kwargs = super().build_kwargs(prompt, stream)
+        # stream_options not supported on Azure OpenAI
+        # https://github.com/openai/openai-python/issues/1469
+        kwargs.pop("stream_options", None)
         return kwargs
 
 
