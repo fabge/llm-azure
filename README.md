@@ -69,20 +69,26 @@ llm -m opus "Hello!"
 
 ## API Key Authentication
 
-If you prefer API keys over Entra ID, add `api_key_name` to your config:
+If you prefer API keys over Entra ID, add `api_key_name` to your config. The name can be anything you choose:
 
 ```yaml
 - model_id: azure-gpt4o
   provider: openai
   model_name: gpt-4o
   endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
-  api_key_name: azure
+  api_key_name: azure-prod  # use any name you like
+
+- model_id: claude-opus
+  provider: anthropic
+  model_name: claude-opus-4-5
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/anthropic/
+  api_key_name: azure-prod  # can share keys across models
 ```
 
 Then set the key:
 
 ```bash
-llm keys set azure
+llm keys set azure-prod
 ```
 
 ## Providers

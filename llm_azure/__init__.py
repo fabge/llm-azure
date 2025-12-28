@@ -54,7 +54,3 @@ def register_models(register):
                 ),
                 aliases=aliases,
             )
-        # Future providers:
-        # elif provider == "inference":
-        #     from llm_azure.inference import AzureInferenceChat
-        #     ...
