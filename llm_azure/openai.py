@@ -1,13 +1,14 @@
 """Azure AI Foundry OpenAI provider for LLM with Entra ID auth."""
 
-import llm
-from llm import Model
+from llm.default_plugins.openai_models import Chat, _Shared
 
 
-class AzureOpenAIChat(Model):
-    """Chat model for OpenAI models on Azure AI Foundry with Entra ID auth."""
+class AzureOpenAIShared(_Shared):
+    """Shared functionality for Azure OpenAI models with Entra ID auth."""
 
-    can_stream = True
+    # Override parent class - we don't always need a key
+    needs_key = None
+    key_env_var = None
 
     def __init__(
         self,
@@ -25,60 +26,26 @@ class AzureOpenAIChat(Model):
             self.needs_key = api_key_name
             self.key_env_var = f"LLM_{api_key_name.upper()}_KEY"
 
-    def _get_client(self, key=None):
-        """Get OpenAI client with API key or Entra ID auth (lazy import)."""
-        from openai import OpenAI
+    def get_client(self, key=None, async_=False):
+        """Get OpenAI client with API key or Entra ID auth."""
+        if async_:
+            from openai import AsyncOpenAI as ClientClass
+        else:
+            from openai import OpenAI as ClientClass
 
         if self.api_key_name and key:
-            # Use API key auth
-            return OpenAI(
-                api_key=key,
-                base_url=self.endpoint,
-            )
+            return ClientClass(api_key=key, base_url=self.endpoint)
         else:
-            # Use Entra ID auth
             from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
             token_provider = get_bearer_token_provider(
                 DefaultAzureCredential(),
                 "https://cognitiveservices.azure.com/.default",
             )
+            return ClientClass(api_key=token_provider(), base_url=self.endpoint)
 
-            return OpenAI(
-                api_key=token_provider(),
-                base_url=self.endpoint,
-            )
 
-    def execute(self, prompt, stream, response, conversation):
-        key = self.get_key() if self.api_key_name else None
-        client = self._get_client(key)
+class AzureOpenAIChat(AzureOpenAIShared, Chat):
+    """Chat model for OpenAI models on Azure AI Foundry with Entra ID auth."""
 
-        messages = []
-        if prompt.system:
-            messages.append({"role": "system", "content": prompt.system})
-        if conversation:
-            for prev in conversation.responses:
-                messages.append({"role": "user", "content": prev.prompt.prompt})
-                messages.append({"role": "assistant", "content": prev.text()})
-        messages.append({"role": "user", "content": prompt.prompt})
-
-        kwargs = {
-            "model": self.model_name,
-            "messages": messages,
-            "stream": stream,
-        }
-
-        if prompt.options.max_tokens:
-            kwargs["max_tokens"] = prompt.options.max_tokens
-
-        if stream:
-            completion = client.chat.completions.create(**kwargs)
-            for chunk in completion:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
-        else:
-            completion = client.chat.completions.create(**kwargs)
-            yield completion.choices[0].message.content
-
-    class Options(llm.Options):
-        max_tokens: int | None = None
+    pass
