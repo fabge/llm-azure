@@ -91,3 +91,27 @@ llm keys set azure
 |-------------|-------------------------------------|-------------|
 | `openai`    | GPT, Mistral, DeepSeek, Llama, etc. | `openai`    |
 | `anthropic` | Claude                              | `anthropic` |
+
+## Migrating from v1.x
+
+Version 2.0 uses a new config format. Update your `azure/config.yaml`:
+
+```yaml
+# Old format (v1.x)
+- model_id: gpt-4o
+  model_name: gpt-4o
+  api_base: https://YOUR_RESOURCE.openai.azure.com/
+  api_version: '2024-12-01-preview'
+
+# New format (v2.0)
+- model_id: gpt-4o
+  provider: openai
+  model_name: gpt-4o
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
+```
+
+Changes:
+
+- `api_base` → `endpoint` (add `/openai/v1/` suffix)
+- `api_version` → removed (no longer needed)
+- `provider` → required (`openai` or `anthropic`)
