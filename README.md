@@ -4,36 +4,62 @@
 [![Changelog](https://img.shields.io/github/v/release/fabge/llm-azure?include_prereleases&label=changelog)](https://github.com/fabge/llm-azure/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/fabge/llm-azure/blob/main/LICENSE)
 
-[LLM](https://llm.datasette.io/) plugin for Azure AI Foundry with Entra ID authentication.
+[LLM](https://llm.datasette.io/) plugin for Azure AI Foundry.
+
+## Why this plugin?
+
+LLM has built-in support for [OpenAI-compatible models](https://llm.datasette.io/en/stable/other-models.html#openai-compatible-models) via `extra-openai-models.yaml`, but it only supports API key authentication.
+
+This plugin adds:
+
+- **Entra ID authentication** - Use `az login` instead of managing API keys
+- **Claude models on Azure** - Access Anthropic models through Azure AI Foundry
+
+If you only need API key authentication for OpenAI-compatible models, you don't need this plugin.
 
 ## Installation
 
 ```bash
 llm install llm-azure
 
-# For Claude models, also install:
+# For Claude models:
 llm install llm-azure[anthropic]
 ```
 
-## Authentication
+## Quick Start
 
-This plugin uses **Azure Entra ID** (formerly Azure AD) via `DefaultAzureCredential`. Make sure you're logged in:
+1. Login to Azure:
 
-```bash
-az login
-```
+   ```bash
+   az login
+   ```
 
-Your user needs the **"Cognitive Services User"** role on the Azure AI resource.
+1. Create config file:
+
+   ```bash
+   mkdir -p "$(dirname "$(llm logs path)")/azure"
+   ```
+
+1. Add models to `azure/config.yaml`:
+
+   ```yaml
+   - model_id: azure-gpt4o
+     provider: openai
+     model_name: gpt-4o
+     endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
+   ```
+
+1. Use it:
+
+   ```bash
+   llm -m azure-gpt4o "Hello!"
+   ```
 
 ## Configuration
 
-Create `azure/config.yaml` in your LLM config directory:
+Models are configured in `azure/config.yaml` in your LLM config directory (find it with `dirname "$(llm logs path)"`).
 
-```bash
-mkdir -p "$(dirname "$(llm logs path)")/azure"
-```
-
-### OpenAI-compatible models (GPT, Mistral, Llama)
+### OpenAI-compatible models (GPT, Mistral, DeepSeek, Llama)
 
 ```yaml
 - model_id: azure-gpt4o
@@ -51,6 +77,8 @@ mkdir -p "$(dirname "$(llm logs path)")/azure"
 
 ### Claude models
 
+Requires `llm install llm-azure[anthropic]`.
+
 ```yaml
 - model_id: claude-opus
   provider: anthropic
@@ -59,37 +87,48 @@ mkdir -p "$(dirname "$(llm logs path)")/azure"
   aliases: [opus]
 ```
 
-## Usage
+### Configuration options
+
+| Field          | Required | Description                                      |
+|----------------|----------|--------------------------------------------------|
+| `model_id`     | Yes      | Name used with `llm -m`                          |
+| `provider`     | Yes      | `openai` or `anthropic`                          |
+| `model_name`   | Yes      | Model name as deployed in Azure                  |
+| `endpoint`     | Yes      | Azure endpoint URL                               |
+| `aliases`      | No       | Short names for the model                        |
+| `api_key_name` | No       | Use API key instead of Entra ID (see below)      |
+
+## Authentication
+
+### Entra ID (default)
+
+Uses `DefaultAzureCredential` from the Azure SDK. Make sure you're logged in:
 
 ```bash
-llm -m azure-gpt4o "Hello!"
-llm -m mistral "Hello!"
-llm -m opus "Hello!"
+az login
 ```
 
-## API Key Authentication
+Your user needs the **"Cognitive Services User"** role on the Azure AI resource.
 
-If you prefer API keys over Entra ID, add `api_key_name` to your config. The name can be anything you choose:
+### API Key
+
+Add `api_key_name` to your model config:
 
 ```yaml
 - model_id: azure-gpt4o
   provider: openai
   model_name: gpt-4o
   endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
-  api_key_name: azure-prod  # use any name you like
-
-- model_id: claude-opus
-  provider: anthropic
-  model_name: claude-opus-4-5
-  endpoint: https://YOUR_RESOURCE.openai.azure.com/anthropic/
-  api_key_name: azure-prod  # can share keys across models
+  api_key_name: azure-prod
 ```
 
-Then set the key:
+Then set the key (the name can be anything you choose):
 
 ```bash
 llm keys set azure-prod
 ```
+
+Multiple models can share the same key name.
 
 ## Providers
 
@@ -100,7 +139,7 @@ llm keys set azure-prod
 
 ## Migrating from v1.x
 
-Version 2.0 uses a new config format. Update your `azure/config.yaml`:
+Version 2.0 has a new config format:
 
 ```yaml
 # Old format (v1.x)
