@@ -4,45 +4,90 @@
 [![Changelog](https://img.shields.io/github/v/release/fabge/llm-azure?include_prereleases&label=changelog)](https://github.com/fabge/llm-azure/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/fabge/llm-azure/blob/main/LICENSE)
 
-LLM access to the Azure OpenAI SDK
+[LLM](https://llm.datasette.io/) plugin for Azure AI Foundry with Entra ID authentication.
 
 ## Installation
 
-Install this plugin in the same environment as [LLM](https://llm.datasette.io/).
-
 ```bash
 llm install llm-azure
+
+# For Claude models, also install:
+llm install llm-azure[anthropic]
+```
+
+## Authentication
+
+This plugin uses **Azure Entra ID** (formerly Azure AD) via `DefaultAzureCredential`. Make sure you're logged in:
+
+```bash
+az login
+```
+
+Your user needs the **"Cognitive Services User"** role on the Azure AI resource.
+
+## Configuration
+
+Create `azure/config.yaml` in your LLM config directory:
+
+```bash
+mkdir -p "$(dirname "$(llm logs path)")/azure"
+```
+
+### OpenAI-compatible models (GPT, Mistral, Llama)
+
+```yaml
+- model_id: azure-gpt4o
+  provider: openai
+  model_name: gpt-4o
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
+  aliases: [agpt]
+
+- model_id: mistral-large
+  provider: openai
+  model_name: Mistral-Large-3
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
+  aliases: [mistral]
+```
+
+### Claude models
+
+```yaml
+- model_id: claude-opus
+  provider: anthropic
+  model_name: claude-opus-4-5
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/anthropic/
+  aliases: [opus]
 ```
 
 ## Usage
 
-First, set an API key for Azure OpenAI:
+```bash
+llm -m azure-gpt4o "Hello!"
+llm -m mistral "Hello!"
+llm -m opus "Hello!"
+```
+
+## API Key Authentication
+
+If you prefer API keys over Entra ID, add `api_key_name` to your config:
+
+```yaml
+- model_id: azure-gpt4o
+  provider: openai
+  model_name: gpt-4o
+  endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
+  api_key_name: azure
+```
+
+Then set the key:
 
 ```bash
 llm keys set azure
-# Paste key here
 ```
 
-To add the `gpt-4-32k` chat model, and embedding model `text-embedding-3-small` deployed in your Azure Subscription, add this to your `azure/config.yaml` file:
+## Providers
 
-```yaml
-- model_id: gpt-4-32k
-  model_name: gpt-4-32k
-  api_base: https://your_deployment.openai.azure.com/
-  api_version: '2023-05-15'
-
-- model_id: text-embedding-3-small
-  embedding_model: true
-  model_name: text-embedding-3-small
-  api_base: https://your_deployment.openai.azure.com/
-  api_version: '2023-05-14'
-```
-
-the configuration file should be in the `azure` directory in the config of your `llm` installation.
-Run this command to find the directory in which this file should be created:
-
-```bash
-dirname "$(llm logs path)"
-```
-
-The `model_id` is the name LLM will use for the model. The `model_name` is the name which needs to be passed to the API - this might differ from the `model_id`, especially if `model_id` could potentially clash with other installed models.
+| Provider    | Models                              | SDK         |
+|-------------|-------------------------------------|-------------|
+| `openai`    | GPT, Mistral, DeepSeek, Llama, etc. | `openai`    |
+| `anthropic` | Claude                              | `anthropic` |
