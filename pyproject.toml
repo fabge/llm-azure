@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-anthropic = ["anthropic"]
+anthropic = ["llm-anthropic"]
 
 [project.urls]
 Homepage = "https://github.com/fabge/llm-azure"

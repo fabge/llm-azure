@@ -1,13 +1,14 @@
 """Azure AI Foundry Anthropic provider for LLM."""
 
-import llm
-from llm import Model
+from llm_anthropic import ClaudeMessages
 
 
-class AzureAnthropicChat(Model):
-    """Chat model for Anthropic models on Azure AI Foundry."""
+class AzureAnthropicChat(ClaudeMessages):
+    """Chat model for Anthropic models on Azure AI Foundry with Entra ID auth."""
 
-    can_stream = True
+    # Override parent - we don't always need a key
+    needs_key = None
+    key_env_var = None
 
     def __init__(
         self,
@@ -16,66 +17,78 @@ class AzureAnthropicChat(Model):
         endpoint: str,
         api_key_name: str | None = None,
     ):
+        # Initialize parent with Azure endpoint
+        super().__init__(
+            model_id=model_id,
+            claude_model_id=model_name,
+            supports_images=True,
+            supports_pdf=True,
+            base_url=endpoint,
+        )
+        # Override parent's model_id (which adds "anthropic/" prefix)
         self.model_id = model_id
-        self.model_name = model_name
         self.endpoint = endpoint
         self.api_key_name = api_key_name
 
-        # Set needs_key for LLM's key management if using API key auth
         if api_key_name:
             self.needs_key = api_key_name
             self.key_env_var = f"LLM_{api_key_name.upper()}_KEY"
 
-    def _get_client(self, key=None):
-        """Get Anthropic client with API key or Entra ID auth (lazy import)."""
+    def _get_azure_client(self, key=None):
+        """Get AnthropicFoundry client with API key or Entra ID auth."""
         from anthropic import AnthropicFoundry
 
         if self.api_key_name and key:
-            # Use API key auth
-            return AnthropicFoundry(
-                api_key=key,
-                base_url=self.endpoint,
-            )
+            return AnthropicFoundry(api_key=key, base_url=self.endpoint)
         else:
-            # Use Entra ID auth
             from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
             token_provider = get_bearer_token_provider(
                 DefaultAzureCredential(),
                 "https://cognitiveservices.azure.com/.default",
             )
-
             return AnthropicFoundry(
                 azure_ad_token_provider=token_provider,
                 base_url=self.endpoint,
             )
 
-    def execute(self, prompt, stream, response, conversation):
-        key = self.get_key() if self.api_key_name else None
-        client = self._get_client(key)
+    def execute(self, prompt, stream, response, conversation, key=None):
+        """Execute using Azure client instead of standard Anthropic client."""
+        # Get our Azure client instead of the parent's Anthropic client
+        client = self._get_azure_client(
+            self.get_key(key) if self.api_key_name else None,
+        )
 
-        messages = []
-        if conversation:
-            for prev in conversation.responses:
-                messages.append({"role": "user", "content": prev.prompt.prompt})
-                messages.append({"role": "assistant", "content": prev.text()})
-        messages.append({"role": "user", "content": prompt.prompt})
+        # Reuse parent's message/kwargs building
+        kwargs = self.build_kwargs(prompt, conversation)
+        prefill_text = self.prefill_text(prompt)
 
-        kwargs = {
-            "model": self.model_name,
-            "messages": messages,
-            "max_tokens": prompt.options.max_tokens or 4096,
-        }
-
-        if prompt.system:
-            kwargs["system"] = prompt.system
+        # Handle beta features
+        messages_client = client.beta.messages if "betas" in kwargs else client.messages
 
         if stream:
-            with client.messages.stream(**kwargs) as stream_response:
-                yield from stream_response.text_stream
+            with messages_client.stream(**kwargs) as stream_response:
+                if prefill_text:
+                    yield prefill_text
+                for chunk in stream_response:
+                    if hasattr(chunk, "delta"):
+                        delta = chunk.delta
+                        if hasattr(delta, "text"):
+                            yield delta.text
+                        elif hasattr(delta, "partial_json") and prompt.schema:
+                            yield delta.partial_json
+                # Record usage
+                last_message = self._model_dump_suppress_warnings(
+                    stream_response.get_final_message(),
+                )
+                response.response_json = last_message
+                if self.add_tool_usage(response, last_message):
+                    yield " "
         else:
-            result = client.messages.create(**kwargs)
-            yield result.content[0].text
-
-    class Options(llm.Options):
-        max_tokens: int | None = None
+            completion = messages_client.create(**kwargs)
+            text = "".join(
+                [item.text for item in completion.content if hasattr(item, "text")],
+            )
+            yield prefill_text + text
+            response.response_json = completion.model_dump()
+            self.add_tool_usage(response, response.response_json)
