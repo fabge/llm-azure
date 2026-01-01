@@ -51,6 +51,7 @@ def register_models(register):
                     model_name=model["model_name"],
                     endpoint=model["endpoint"],
                     api_key_name=model.get("api_key_name"),
+                    supports_images=model.get("supports_images", True),
                 ),
                 aliases=aliases,
             )

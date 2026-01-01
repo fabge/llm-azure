@@ -48,4 +48,34 @@ class AzureOpenAIShared(_Shared):
 class AzureOpenAIChat(AzureOpenAIShared, Chat):
     """Chat model for OpenAI models on Azure AI Foundry with Entra ID auth."""
 
-    pass
+    def __init__(
+        self,
+        model_id: str,
+        model_name: str,
+        endpoint: str,
+        api_key_name: str | None = None,
+        supports_images: bool = True,
+    ):
+        # Initialize shared functionality
+        AzureOpenAIShared.__init__(
+            self,
+            model_id=model_id,
+            model_name=model_name,
+            endpoint=endpoint,
+            api_key_name=api_key_name,
+        )
+        # Initialize Chat
+        Chat.__init__(
+            self,
+            model_id=model_id,
+            model_name=model_name,
+        )
+        # Set attachment types for vision support
+        if supports_images:
+            self.attachment_types = {
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/gif",
+                "application/pdf",
+            }
