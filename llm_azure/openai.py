@@ -64,11 +64,13 @@ class AzureOpenAIChat(AzureOpenAIShared, Chat):
             endpoint=endpoint,
             api_key_name=api_key_name,
         )
-        # Initialize Chat
+        # Initialize Chat with schema support
         Chat.__init__(
             self,
             model_id=model_id,
             model_name=model_name,
+            supports_schema=True,
+            supports_tools=True,
         )
         # Set attachment types for vision support
         if supports_images:
