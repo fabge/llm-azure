@@ -6,6 +6,11 @@ from llm_anthropic import ClaudeMessages
 class AzureAnthropicChat(ClaudeMessages):
     """Chat model for Anthropic models on Azure AI Foundry with Entra ID auth."""
 
+    model_type = "Azure Anthropic"
+
+    def __str__(self):
+        return f"{self.model_type}: {self.model_id}"
+
     # Override parent - we don't always need a key
     needs_key = None
     key_env_var = None

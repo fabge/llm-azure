@@ -48,4 +48,7 @@ class AzureOpenAIShared(_Shared):
 class AzureOpenAIChat(AzureOpenAIShared, Chat):
     """Chat model for OpenAI models on Azure AI Foundry with Entra ID auth."""
 
-    pass
+    model_type = "Azure OpenAI Chat"
+
+    def __str__(self):
+        return f"{self.model_type}: {self.model_id}"
