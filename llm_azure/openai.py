@@ -17,8 +17,15 @@ class AzureOpenAIShared(_Shared):
         endpoint: str,
         api_key_name: str | None = None,
     ):
-        self.model_id = model_id
-        self.model_name = model_name
+        # Call parent to set up model capabilities
+        super().__init__(
+            model_id=model_id,
+            model_name=model_name,
+            api_base=endpoint,
+            vision=True,
+            supports_schema=True,
+            supports_tools=True,
+        )
         self.endpoint = endpoint
         self.api_key_name = api_key_name
 
