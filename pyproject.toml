@@ -1,7 +1,7 @@
 [project]
 name = "llm-azure"
 version = "2.1"
-description = "Azure AI Foundry plugin for LLM - access Anthropic, Llama, Mistral and more via Azure"
+description = "Azure AI Foundry plugin for LLM - access OpenAI, Claude, Llama, Mistral and more via Azure"
 readme = "README.md"
 authors = [{name = "Fabian Geiger"}]
 license = "Apache-2.0"

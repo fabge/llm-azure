@@ -34,13 +34,14 @@ llm install llm-azure[anthropic]
    az login
    ```
 
-1. Create config file:
+2. Create config file at `~/.config/io.datasette.llm/azure/config.yaml`:
 
    ```bash
    mkdir -p "$(dirname "$(llm logs path)")/azure"
+   touch "$(dirname "$(llm logs path)")/azure/config.yaml"
    ```
 
-1. Add models to `azure/config.yaml`:
+3. Add models to the config file:
 
    ```yaml
    - model_id: azure-gpt4o
@@ -49,7 +50,7 @@ llm install llm-azure[anthropic]
      endpoint: https://YOUR_RESOURCE.openai.azure.com/openai/v1/
    ```
 
-1. Use it:
+4. Use it:
 
    ```bash
    llm -m azure-gpt4o "Hello!"
@@ -57,7 +58,7 @@ llm install llm-azure[anthropic]
 
 ## Configuration
 
-Models are configured in `azure/config.yaml` in your LLM config directory (find it with `dirname "$(llm logs path)"`).
+Models are configured in `~/.config/io.datasette.llm/azure/config.yaml`.
 
 ### OpenAI-compatible models (GPT, Mistral, DeepSeek, Llama)
 
