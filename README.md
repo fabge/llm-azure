@@ -34,12 +34,15 @@ llm install llm-azure[anthropic]
    az login
    ```
 
-2. Create config file at `~/.config/io.datasette.llm/azure/config.yaml`:
+2. Create the config file in LLM's user directory (`azure/config.yaml`):
 
    ```bash
    mkdir -p "$(dirname "$(llm logs path)")/azure"
    touch "$(dirname "$(llm logs path)")/azure/config.yaml"
    ```
+
+   The location is platform-specific (`~/Library/Application Support/io.datasette.llm`
+   on macOS, `~/.config/io.datasette.llm` on Linux); the command above resolves it for you.
 
 3. Add models to the config file:
 
@@ -58,7 +61,9 @@ llm install llm-azure[anthropic]
 
 ## Configuration
 
-Models are configured in `~/.config/io.datasette.llm/azure/config.yaml`.
+Models are configured in `azure/config.yaml` inside LLM's user directory — run
+`dirname "$(llm logs path)"` to find it (e.g. `~/Library/Application Support/io.datasette.llm`
+on macOS, `~/.config/io.datasette.llm` on Linux).
 
 ### OpenAI-compatible models (GPT, Mistral, DeepSeek, Llama)
 
